@@ -1,375 +1,252 @@
-let remainingTime = 0; // 残り時間（秒）
-let timerInterval = null;
+// ==========================================
+// 1. 定数・設定の定義
+// ==========================================
 
-let isRunning = false;// タイマーが現在実行中かを示す
-let isPlaying = false;// タイマーのサウンドが実行中かを示す
-
-let currentMainSound = null;
-let currentTrialSound = null;
-
-const headDisplay = document.getElementById('titleDisplay')
-const usefulExp = document.getElementById('usefulExpression');
-
-const TMdisplay = document.getElementById('timerDisplay');
-const startstopBtn = document.getElementById("startstop");
+// --- DOM要素の取得 ---
+const titleDisplay = document.getElementById('titleDisplay');
+const timerDisplay = document.getElementById('timerDisplay');
+const instructionText = document.getElementById('usefulExpression');
+const startStopBtn = document.getElementById("startstop");
 const resetBtn = document.getElementById("reset");
 
-const tenMinBtn = document.getElementById('tenMin');
-const oneMinBtn = document.getElementById('oneMin');
-const tenSecBtn = document.getElementById('tenSec');
+// 時間追加ボタン
+const add10MinBtn = document.getElementById('tenMin');
+const add1MinBtn = document.getElementById('oneMin');
+const add10SecBtn = document.getElementById('tenSec');
 
-
-// 共通の終了音（アラーム）
-const catSeBtn = document.getElementById('catSound');
-const birdSeBtn = document.getElementById('birdSound');
-const natureSeBtn = document.getElementById('natureSound');
-const otherSeBtn = document.getElementById('otherSound');
-const soundButtons = [catSeBtn, birdSeBtn, natureSeBtn, otherSeBtn];
-
-const catTrialBtn = document.getElementById('catTrial');
-const birdTrialBtn = document.getElementById('birdTrial');
-const natureTrialBtn = document.getElementById('natureTrial');
-const otherTrialBtn = document.getElementById('otherTrial');
-
-
-const audioCat = [
-  new Audio('cat-sounds/猫の鳴き声1.mp3'),
-  new Audio('cat-sounds/猫の鳴き声2.mp3'),
-  new Audio('cat-sounds/猫ニャーニャー.mp3'),
-  new Audio('cat-sounds/猫ニャーニャー_2.mp3'),
-  new Audio('cat-sounds/猫ニャーニャー_3.mp3'),
-  new Audio('cat-sounds/リアルな猫の鳴き声_3.mp3')
-];
-
-const audioBird = [
-  new Audio('bird-sounds/モスケミソサザイのさえずり.mp3'),
-  new Audio('bird-sounds/カッコウの鳴き声.mp3'),
-  new Audio('bird-sounds/オナガ.mp3'),
-  new Audio('bird-sounds/キジバトのさえずり1.mp3'),
-  new Audio('bird-sounds/キビタキのさえずり.mp3'),
-  new Audio('bird-sounds/スズメが鳴く朝.mp3')
-];
-
-const audioNature = [
-  new Audio('nature-sounds/fall_riverside_dawn.mp3'),
-  new Audio('nature-sounds/たき火.mp3'),
-  new Audio('nature-sounds/海岸1.mp3'),
-  new Audio('nature-sounds/激しい雨.mp3'),
-  new Audio('nature-sounds/風-そよ風.mp3'),
-  new Audio('nature-sounds/風に揺れる草木2.mp3'),
-  new Audio('nature-sounds/木枯らし・風に吹かれる落ち葉.mp3')
-];
-
-const audioOther = [
-  new Audio('other-sounds/目玉焼きを焼く.mp3'),
-  new Audio('other-sounds/缶を開ける.mp3'),
-  new Audio('other-sounds/カーテンを開ける (1).mp3'),
-  new Audio('other-sounds/缶ジュースを開ける2.mp3'),
-  new Audio('other-sounds/焼きそばを焼く1.mp3'),
-  new Audio('other-sounds/ふすまを閉める.mp3'),
-];
-
-const categorySoundsMap = {
-  'cat': audioCat,
-  'bird': audioBird,
-  'nature': audioNature,
-  'other': audioOther
-};
-
-function updatetitleDisplay() {
-
-  headDisplay.textContent = formatTime(remainingTime);
-};
-
-function updateDisplayContent() {
-
-  TMdisplay.textContent = formatTime(remainingTime);
+// --- 音声データの設定（ここがリファクタリングの核！） ---
+// ※IDはHTML側の定義と一致させる必要があります
+const soundData = {
+  cat: {
+    selectBtnId: 'catSound',
+    trialBtnId: 'catTrial',
+    files: ['cat-sounds/猫の鳴き声1.mp3', 'cat-sounds/猫の鳴き声2.mp3', 'cat-sounds/猫ニャーニャー.mp3', 'cat-sounds/猫ニャーニャー_2.mp3', 'cat-sounds/猫ニャーニャー_3.mp3', 'cat-sounds/リアルな猫の鳴き声_3.mp3'],
+    bg: 'sound-background/cutiestCat.png'
+  },
+  bird: {
+    selectBtnId: 'birdSound',
+    trialBtnId: 'birdTrial',
+    files: ['bird-sounds/モスケミソサザイのさえずり.mp3', 'bird-sounds/カッコウの鳴き声.mp3', 'bird-sounds/オナガ.mp3', 'bird-sounds/キジバトのさえずり1.mp3', 'bird-sounds/キビタキのさえずり.mp3', 'bird-sounds/スズメが鳴く朝.mp3'],
+    bg: 'sound-background/cutiestBird.jpg'
+  },
+  nature: {
+    selectBtnId: 'natureSound',
+    trialBtnId: 'natureTrial',
+    files: ['nature-sounds/fall_riverside_dawn.mp3', 'nature-sounds/たき火.mp3', 'nature-sounds/海岸1.mp3', 'nature-sounds/激しい雨.mp3', 'nature-sounds/風-そよ風.mp3', 'nature-sounds/風に揺れる草木2.mp3', 'nature-sounds/木枯らし・風に吹かれる落ち葉.mp3'],
+    bg: 'sound-background/relaxNature.jpg'
+  },
+  other: {
+    selectBtnId: 'otherSound',
+    trialBtnId: 'otherTrial',
+    files: ['other-sounds/目玉焼きを焼く.mp3', 'other-sounds/缶を開ける.mp3', 'other-sounds/カーテンを開ける (1).mp3', 'other-sounds/缶ジュースを開ける2.mp3', 'other-sounds/焼きそばを焼く1.mp3', 'other-sounds/ふすまを閉める.mp3'],
+    bg: 'sound-background/otherSound.jpg'
+  }
 };
 
 
-function timeAdd(seconds) {
+// ==========================================
+// 2. 状態管理変数
+// ==========================================
+let remainingTime = 0;       // 残り時間（秒）
+let timerInterval = null;    // setIntervalのID
+let isRunning = false;       // タイマー実行中フラグ
+let activeAudio = null;      // 現在再生中のAudioオブジェクト
+let currentSoundFiles = null; // 選択されたカテゴリの音声ファイルリスト
 
-  remainingTime += seconds;
-  updateDisplayContent();
-};
 
+// ==========================================
+// 3. 共通関数（ロジック）
+// ==========================================
 
-// 時間を表示形式に整える関数
+/**
+ * 時間を表示形式(00:00:00)に変換
+ */
 function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+}
 
-  let hours = Math.floor(seconds / 3600);
-  let minutes = Math.floor((seconds % 3600) / 60);
-  let sec = seconds % 60;
+/**
+ * 画面表示を更新
+ */
+function updateDisplay() {
+  const timeStr = formatTime(remainingTime);
+  timerDisplay.textContent = timeStr;
+  titleDisplay.textContent = timeStr;
+}
 
-  return [
-    String(hours).padStart(2, '0'),
-    String(minutes).padStart(2, '0'),
-    String(sec).padStart(2, '0')
-  ].join(':');
-};
-
-// 音声選択ボタンの背景を変更する関数
-function updateActiveSoundButton(activeButtonElement) {
-
-  soundButtons.forEach(button => {
-    if (button) {
-      if (button === activeButtonElement) {
-
-        button.classList.add('active-sound');
-        button.classList.remove('inactive-sound');
-
-      } else {
-        button.classList.remove('active-sound');
-        button.classList.add('inactive-sound');
-      }
-    }
+/**
+ * UIの表示モード切替（start/stop時のボタン表示制御）
+ */
+function setUiMode(mode) {
+  const displayVal = (mode === 'running') ? 'none' : 'inline-block';
+  const displayValBlock = (mode === 'running') ? 'none' : 'block';
+  
+  // 時間追加ボタン
+  add10MinBtn.style.display = displayVal;
+  add1MinBtn.style.display = displayVal;
+  add10SecBtn.style.display = displayVal;
+  
+  // 指示テキスト
+  instructionText.style.display = displayValBlock;
+  
+  // 試聴ボタン類をまとめて制御
+  Object.values(soundData).forEach(data => {
+    const trialBtn = document.getElementById(data.trialBtnId);
+    if(trialBtn) trialBtn.style.display = displayVal;
   });
 }
 
-// 音声選択ボタンの背景をリセットする関数
-function resetSoundButton() {
+/**
+ * 音声を再生（共通化）
+ * @param {string[]} files 再生するファイルパスの配列
+ * @param {boolean} loop ループ再生するかどうか
+ */
+function playRandomSound(files, loop) {
+  stopAllSounds(); // 再生前に既存の音を止める
+  
+  if (!files || files.length === 0) return;
 
-  soundButtons.forEach(button => {
-    if (button) {
-      button.classList.remove('active-sound');
-      button.classList.remove('inactive-sound');
-    }
-  });
-  currentMainSound = null;
+  const path = files[Math.floor(Math.random() * files.length)];
+  const audio = new Audio(path);
+  audio.loop = loop;
+  audio.play().catch(e => console.log('再生エラー:', e)); // ブラウザ制限対策
+  activeAudio = audio;
 }
 
-function deleteButton() {
-  tenMinBtn.style.display = 'none';
-  oneMinBtn.style.display = 'none';
-  tenSecBtn.style.display = 'none';
-  usefulExp.style.display = 'none';
-  catTrialBtn.style.display = 'none';
-  birdTrialBtn.style.display = 'none';
-  natureTrialBtn.style.display = 'none';
-  otherTrialBtn.style.display = 'none';
-}
-
-function reviveTimeButton() {
-  tenMinBtn.style.display = 'inline-block';
-  oneMinBtn.style.display = 'inline-block';
-  tenSecBtn.style.display = 'inline-block';
-}
-
-
-function displayImage(imageSource) { // 背景画像を選んだサウンド音と関連したものにする関数
-
-  TMdisplay.style.backgroundImage = `url("${imageSource}")`;
-  TMdisplay.style.backgroundSize = 'contain';
-  TMdisplay.style.backgroundPosition = 'center';
-}
-
-function playRandomSound(category) {
-
-  stopAllSounds();
-  const sounds = category;
-  const randomIndex = Math.floor(Math.random() * sounds.length);
-  const currentSE = sounds[randomIndex];
-
-  if (isRunning) {
-    currentSE.loop = true;
-    currentSE.play();
-  }
-  else {
-    currentSE.play();
-    currentSE = null;
-  }
-};
-
+/**
+ * 全ての音声を停止
+ */
 function stopAllSounds() {
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio.currentTime = 0;
+    activeAudio = null;
+  }
+}
 
-  Object.values(categorySoundsMap).forEach(soundsArray => {
-    soundsArray.forEach(audio => {
-      if (audio && typeof audio.pause === 'function') {
-        audio.pause();
-        audio.currentTime = 0;
+/**
+ * 音声カテゴリのセットアップ（コピペ排除の要！）
+ */
+function setupSoundCategory(data) {
+  const selectBtn = document.getElementById(data.selectBtnId);
+  const trialBtn = document.getElementById(data.trialBtnId);
+
+  if (!selectBtn || !trialBtn) return; // 要素がなければスキップ
+
+  // 選択ボタンのクリックイベント
+  selectBtn.addEventListener('click', () => {
+    if (isRunning) return;
+
+    // 1. 再生リストをセット
+    currentSoundFiles = data.files;
+
+    // 2. 背景画像を変更
+    timerDisplay.style.backgroundImage = `url("${data.bg}")`;
+    timerDisplay.style.backgroundSize = 'contain';
+    timerDisplay.style.backgroundPosition = 'center';
+
+    // 3. ボタンの見た目を更新（他をinactive, 自分をactive）
+    // 一旦すべての選択ボタンから active を消す
+    Object.values(soundData).forEach(d => {
+      const btn = document.getElementById(d.selectBtnId);
+      if(btn) {
+        btn.classList.remove('active-sound');
+        btn.classList.add('inactive-sound');
       }
     });
+    // クリックされたボタンだけ active にする
+    selectBtn.classList.remove('inactive-sound');
+    selectBtn.classList.add('active-sound');
   });
-  isPlaying = false;
-}
 
-function timeDiminishing() {
-
-  timerInterval = setInterval(() => {
-    remainingTime -= 1
-    updateDisplayContent();
-    updatetitleDisplay();
-    if (remainingTime == 0) {
-      isPlaying = true;
-      clearInterval(timerInterval);
-      playRandomSound(currentMainSound);
-      isRunning = true;
-      return
+  // 試聴ボタンのクリックイベント
+  trialBtn.addEventListener('click', () => {
+    if (!isRunning) {
+      playRandomSound(data.files, false); // false = ループしない
     }
-  }, 1000); // 1秒ごとに実行
-
+  });
 }
 
-tenMinBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    timeAdd(600);
+// ==========================================
+// 4. イベントリスナー登録 & 初期化
+// ==========================================
+
+// 音声ボタンを一括セットアップ
+Object.values(soundData).forEach(data => {
+  setupSoundCategory(data);
+});
+
+
+// 時間追加ボタン
+add10MinBtn.addEventListener('click', () => { if(!isRunning) { remainingTime += 600; updateDisplay(); }});
+add1MinBtn.addEventListener('click', () => { if(!isRunning) { remainingTime += 60; updateDisplay(); }});
+add10SecBtn.addEventListener('click', () => { if(!isRunning) { remainingTime += 10; updateDisplay(); }});
+
+// スタート・ストップボタン
+startStopBtn.addEventListener('click', () => {
+  if (isRunning) {
+    // --- ストップ処理 ---
+    clearInterval(timerInterval);
+    isRunning = false;
+    stopAllSounds();
+    
+    startStopBtn.textContent = 'スタート';
+    startStopBtn.style.backgroundColor = '#007bff';
+    setUiMode('stopped');
+  } else {
+    // --- スタート処理 ---
+    if (remainingTime === 0) return alert('時間を設定してください！');
+    if (!currentSoundFiles) return alert('音を設定してください！');
+
+    stopAllSounds(); // 試聴停止
+    isRunning = true;
+    startStopBtn.textContent = 'ストップ';
+    startStopBtn.style.backgroundColor = '#f44336';
+    setUiMode('running');
+
+    timerInterval = setInterval(() => {
+      remainingTime--;
+      updateDisplay();
+      
+      // タイマー終了時
+      if (remainingTime <= 0) {
+        clearInterval(timerInterval);
+        playRandomSound(currentSoundFiles, true); // アラーム再生（ループ）
+       
+      }
+    }, 1000);
   }
 });
 
-oneMinBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    timeAdd(60); 
-  }
-});
-
-tenSecBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    timeAdd(10); 
-  }
-});
-
-//時間を初期化する処理
+// リセットボタン
 resetBtn.addEventListener('click', () => {
-
   clearInterval(timerInterval);
   stopAllSounds();
   isRunning = false;
-  currentTrialSound = null;
-  currentMainSound = null;
   remainingTime = 0;
+  currentSoundFiles = null;
+  
+  updateDisplay();
+  titleDisplay.textContent = 'やすらぎタイマー';
+  timerDisplay.style.backgroundImage = 'none';
+  
+  startStopBtn.textContent = 'スタート';
+  startStopBtn.style.backgroundColor = '#007bff';
+  setUiMode('stopped');
 
-
-  updateDisplayContent();
-  headDisplay.textContent = 'やすらぎタイマー';
-  startstopBtn.textContent = 'スタート';
-  startstopBtn.style.backgroundColor = '#007bff';
-  TMdisplay.style.backgroundImage = 'none';
-  reviveTimeButton();
-  catTrialBtn.style.display = 'inline-block';
-  birdTrialBtn.style.display = 'inline-block';
-  natureTrialBtn.style.display = 'inline-block';
-  otherTrialBtn.style.display = 'inline-block';
-  usefulExp.style.display = 'block';
-  resetSoundButton();
-});
-
-
-startstopBtn.addEventListener('click', () => {
-  if (isRunning) {
-
-    clearInterval(timerInterval);
-    startstopBtn.textContent = 'スタート';
-    startstopBtn.style.backgroundColor = '#007bff';
-    reviveTimeButton();
-    isRunning = false;
-    stopAllSounds();
-
-    if (isPlaying) {
-      stopAllSounds();
-      isPlaying = false;
+  // ボタン選択状態の解除
+  Object.values(soundData).forEach(d => {
+    const btn = document.getElementById(d.selectBtnId);
+    if(btn) {
+      btn.classList.remove('active-sound');
+      btn.classList.remove('inactive-sound');
     }
-  }
-
-  else //タイマーが止まっているとき
-  {
-    if (remainingTime === 0) {
-      alert('時間を設定してください！');
-      return;
-    }
-
-    else if (currentMainSound == null) {
-      alert('音を設定してください！');
-      return;
-    }
-
-    stopAllSounds();
-    currentTrialSound = null;
-    timeDiminishing();
-    startstopBtn.textContent = 'ストップ';
-    startstopBtn.style.backgroundColor = '#f44336';
-    deleteButton();
-    isRunning = true;
-  }
+  });
 });
 
-
-catSeBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    displayImage('sound-background/cutiestCat.png');
-    updateActiveSoundButton(catSeBtn);
-    currentMainSound = audioCat;
-  }
-
-});
-
-birdSeBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    displayImage('sound-background/cutiestBird.jpg');
-    updateActiveSoundButton(birdSeBtn);
-    currentMainSound = audioBird;
-  }
-});
-
-natureSeBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    displayImage('sound-background/relaxNature.jpg');
-    updateActiveSoundButton(natureSeBtn);
-    currentMainSound = audioNature;
-  }
-});
-
-
-otherSeBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    displayImage('sound-background/otherSound.jpg');
-    updateActiveSoundButton(otherSeBtn);
-    currentMainSound = audioOther;
-  }
-});
-
-catTrialBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    stopAllSounds();
-    currentTrialSound = audioCat;
-    playRandomSound(currentTrialSound);
-  }
-}
-)
-
-birdTrialBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    stopAllSounds();
-    currentTrialSound = audioBird;
-    playRandomSound(currentTrialSound);
-  }
-
-}
-)
-natureTrialBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    stopAllSounds();
-    currentTrialSound = audioNature;
-    playRandomSound(currentTrialSound);
-  }
-
-}
-)
-otherTrialBtn.addEventListener('click', () => {
-  if (!isRunning) {
-    stopAllSounds();
-    currentTrialSound = audioOther;
-    playRandomSound(currentTrialSound);
-  }
-
-}
-)
-
-
-reviveTimeButton();
-usefulExp.style.display = 'block';
-catTrialBtn.style.display = 'inline-block';
-birdTrialBtn.style.display = 'inline-block';
-natureTrialBtn.style.display = 'inline-block';
-otherTrialBtn.style.display = 'inline-block';
-updateDisplayContent();
-
+// 初期表示
+updateDisplay();
+setUiMode('stopped');
