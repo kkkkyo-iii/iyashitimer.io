@@ -6,7 +6,7 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 
 ## 👀 デモ画像
-![アプリ画面](<img width="1916" height="911" alt="やすらぎタイマー" src="https://github.com/user-attachments/assets/c99a7ba8-10e1-4e4b-a954-bfad474b7408" />
+![アプリ画面]<img width="1916" height="911" alt="やすらぎタイマー" src="https://github.com/user-attachments/assets/c99a7ba8-10e1-4e4b-a954-bfad474b7408" />
 
 
 ## 🔗 サービス URL
